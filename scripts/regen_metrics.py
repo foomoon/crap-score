@@ -55,7 +55,9 @@ A fully-covered function's score collapses to just its complexity -- high
 CRAP on a 100%-covered function is a refactor signal, not a testing-gap
 signal. The original CRAP4J tool (Savoia/Evans, ~2007) flags any method
 scoring **CRAP > 30** as "needs attention"; that's a single binary cutoff,
-not a graduated scale.
+not a graduated scale. The table below adds an informal 🟡 watch tier below
+that cutoff (CRAP > 15) purely as a visual early-warning gradient -- it is
+not part of CRAP4J's actual definition.
 
 ## Findings
 
@@ -81,7 +83,7 @@ Sorted by CRAP score, descending (highest risk first).
 """
 
 
-def build_summary_block(coverage_files: dict, total_tests: int) -> str:
+def build_summary_block(coverage_files: dict, total_tests: int, rows: list) -> str:
     files = sorted(coverage_files)
     total_stmts = sum(coverage_files[p]["summary"]["num_statements"] for p in files)
     total_covered = sum(coverage_files[p]["summary"]["covered_lines"] for p in files)
@@ -94,6 +96,17 @@ def build_summary_block(coverage_files: dict, total_tests: int) -> str:
             f"- **{100 * total_covered / total_stmts:.1f}% overall line coverage** "
             f"({total_covered} / {total_stmts} statements)"
         )
+
+    emoji, text, worst = compute_crap.overall_rating(rows)
+    if worst:
+        lines.append(
+            f"- **Overall rating: {emoji} {text}** -- highest CRAP score is "
+            f"{worst['crap']:.1f} (`{worst['name']}`, {worst['file']}:{worst['lineno']}); "
+            f"{len(rows)} gradeable functions/methods total"
+        )
+    else:
+        lines.append(f"- **Overall rating: {emoji} {text}** -- no gradeable functions found")
+
     lines += ["", "| File | Coverage | Statements |", "|:---|---:|---:|"]
     for p in files:
         s = coverage_files[p]["summary"]
@@ -142,9 +155,9 @@ def build_crap_table(rows: list) -> str:
         return "No gradeable functions found."
     lines = ["| CRAP | Complexity | Coverage | Risk | Function | File |", "|---:|---:|---:|:---|:---|:---|"]
     for r in rows:
-        risk = "Needs attention" if r["crap"] > compute_crap.CRAP4J_THRESHOLD else "OK"
+        emoji, text = compute_crap.risk_label(r["crap"])
         lines.append(
-            f"| {r['crap']:.1f} | {r['complexity']} | {r['coverage']:.0f}% | {risk} | "
+            f"| {r['crap']:.1f} | {r['complexity']} | {r['coverage']:.0f}% | {emoji} {text} | "
             f"`{r['name']}` | `{r['file']}:{r['lineno']}` |"
         )
     return "\n".join(lines)
@@ -192,7 +205,7 @@ def main() -> None:
     bootstrapped = not metrics_path.exists()
     original = SKELETON if bootstrapped else metrics_path.read_text()
     text = original
-    text = splice(text, "SUMMARY", build_summary_block(coverage_files, test_count))
+    text = splice(text, "SUMMARY", build_summary_block(coverage_files, test_count, rows))
     text = splice(text, "QUALITY", build_quality_block(per_file, all_tests))
     text = splice(text, "CRAP_TABLE", build_crap_table(rows))
 

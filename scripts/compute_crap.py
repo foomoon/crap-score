@@ -32,9 +32,30 @@ import common
 # a graduated scale.
 CRAP4J_THRESHOLD = 30
 
+# An informal early-warning line below CRAP4J's own cutoff, used only to give
+# the table a three-color gradient instead of a flat OK/flagged split. This
+# is NOT part of CRAP4J's actual definition -- don't cite it as such.
+WATCH_THRESHOLD = 15
 
-def _risk(crap: float) -> str:
-    return "Needs attention" if crap > CRAP4J_THRESHOLD else "OK"
+
+def risk_label(crap: float) -> tuple[str, str]:
+    """Returns (emoji, text) for a CRAP score."""
+    if crap > CRAP4J_THRESHOLD:
+        return "\U0001F534", "Needs attention"
+    if crap > WATCH_THRESHOLD:
+        return "\U0001F7E1", "Watch"
+    return "\U0001F7E2", "OK"
+
+
+def overall_rating(rows: list[dict]) -> tuple[str, str, dict | None]:
+    """Returns (emoji, text, worst_row) for the whole project, from the single
+    highest CRAP score -- one bad function should visibly flag project risk
+    even if everything else is clean, so this uses max(), not an average."""
+    if not rows:
+        return "\U0001F7E2", "OK", None
+    worst = max(rows, key=lambda r: r["crap"])
+    emoji, text = risk_label(worst["crap"])
+    return emoji, text, worst
 
 
 def run_tests_with_coverage(repo_root: Path, python: str, source_dirs: list[str],
@@ -104,8 +125,9 @@ def print_table(rows: list[dict]) -> None:
     print("| CRAP | Complexity | Coverage | Risk | Function | File |")
     print("|---:|---:|---:|:---|:---|:---|")
     for r in rows:
+        emoji, text = risk_label(r["crap"])
         print(f"| {r['crap']:.1f} | {r['complexity']} | {r['coverage']:.0f}% | "
-              f"{_risk(r['crap'])} | `{r['name']}` | `{r['file']}:{r['lineno']}` |")
+              f"{emoji} {text} | `{r['name']}` | `{r['file']}:{r['lineno']}` |")
 
     unmatched = [r for r in rows if not r["matched"]]
     if unmatched:
@@ -115,8 +137,12 @@ def print_table(rows: list[dict]) -> None:
             print(f"  {r['file']}:{r['lineno']} {r['name']}", file=sys.stderr)
 
     flagged = sum(1 for r in rows if r["crap"] > CRAP4J_THRESHOLD)
+    emoji, text, worst = overall_rating(rows)
     print(f"\n{len(rows)} gradeable functions/methods: "
           f"{flagged} flagged (CRAP > {CRAP4J_THRESHOLD}).", file=sys.stderr)
+    if worst:
+        print(f"Overall rating: {emoji} {text} (worst: {worst['name']} at {worst['crap']:.1f})",
+              file=sys.stderr)
 
 
 def main() -> None:
