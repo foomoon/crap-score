@@ -61,9 +61,8 @@ not part of CRAP4J's actual definition.
 
 ## Findings
 
-_Add notes here on anything the tables below surface -- functions worth
-refactoring, real coverage gaps worth closing, etc. This section is
-hand-maintained and untouched by regeneration._
+_Populated by the agent running this skill after each regeneration -- not
+hand-maintained, and not part of the AUTOGEN regions the script rewrites._
 
 ## Test quality
 

@@ -1,6 +1,6 @@
 ---
 name: crap-score
-description: Regenerates a Python project's METRICS.md (CRAP scores + test-quality scan) in place by running the suite and radon — auto-detects source/test dirs, works on any pytest project, no per-project setup required.
+description: Regenerates a Python project's METRICS.md (CRAP scores + test-quality scan) in place by running the suite and radon, then writes the Findings section's analysis itself — auto-detects source/test dirs, works on any pytest project, no per-project setup required.
 ---
 
 Regenerates the data-derived sections of a Python project's `METRICS.md` — CRAP scores
@@ -23,9 +23,10 @@ the current project's layout.
    Python 3.11+ (for `tomllib`) — it doesn't need those packages in its own environment.
 
 2. If `METRICS.md` doesn't exist yet for this project, it's created with a minimal skeleton
-   (title, methodology blurb, an empty "Findings" section for you to fill in, and the three
-   `<!-- AUTOGEN:... -->` regions). On later runs, only those marked regions are rewritten —
-   everything else (the "Findings" section, any hand-added prose) is preserved.
+   (title, methodology blurb, an empty "Findings" section, and the three
+   `<!-- AUTOGEN:... -->` regions). On later runs, only the marked regions are rewritten by
+   the script — "Findings" is rewritten by you (see step 5 below), and any other hand-added
+   prose elsewhere in the file is preserved untouched.
 
 3. **Auto-detection, and how to override it** if a project's layout is unusual (monorepo,
    non-standard test dir, etc.) — add a `[tool.crap_score]` table to the target project's
@@ -49,12 +50,25 @@ the current project's layout.
    (there usually isn't one yet — create it) rather than relying on auto-detection to guess
    which directory is "the" project root.
 
-5. Report back concisely: whether the file changed, and if so, what moved (a new function
+5. After the script writes the `SUMMARY`/`QUALITY`/`CRAP_TABLE` regions, read them and update
+   the "## Findings" section yourself — this is not the end user's manual upkeep, and it's
+   deliberately outside the `AUTOGEN` markers because it needs judgment a static script can't
+   apply. Write a handful of concrete, actionable bullets, each referencing a specific
+   `file:line`:
+   - Highest-risk functions (CRAP > 30, or newly crossing that line since the last run — use
+     `git diff <path-to-METRICS.md>` on the old `CRAP_TABLE` region if the file is tracked).
+   - For each, whether it reads as a **refactor signal** (high complexity, already
+     well-covered) or a **testing-gap signal** (low coverage driving the score).
+   - Any assertion-free tests or heavily-mocked clusters from the `QUALITY` region worth
+     calling out.
+   Replace the prior Findings content rather than appending — it should reflect current state,
+   not accumulate history. Skip it only if nothing crosses a threshold worth flagging.
+
+6. Report back concisely: whether the file changed, and if so, what moved (a new function
    crossed the CRAP4J threshold of 30, coverage shifted, assertion-free-test count changed).
    Don't paste the whole file into the conversation — a one- or two-line delta is enough. Use
    `git diff <path-to-METRICS.md>` if the file is tracked, rather than re-deriving the delta
    by eye.
 
-6. Never hand-edit content inside the `<!-- AUTOGEN:... -->` regions — the script owns them
-   and will overwrite manual edits on the next run. Edit the "Findings" section and any other
-   prose directly; that's yours to maintain.
+7. Never hand-edit content inside the `<!-- AUTOGEN:... -->` regions — the script owns them
+   and will overwrite manual edits on the next run.

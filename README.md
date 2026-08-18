@@ -96,6 +96,11 @@ layouts, custom test dirs), and a known limitation around nested Python subproje
   `METRICS.md`'s `<!-- AUTOGEN:... -->`-delimited regions, leaving any hand-written analysis
   around them untouched. Bootstraps a minimal `METRICS.md` if one doesn't exist yet.
 
+The script only produces data, not analysis: the "Findings" section is deliberately left
+outside the `AUTOGEN` regions, and it's Claude (per [`SKILL.md`](SKILL.md)) that reads the
+freshly regenerated tables and writes that section's bullets each run — not something you
+need to maintain by hand.
+
 Each script is also runnable standalone if you just want the data printed to stdout without
 touching a file.
 
