@@ -21,6 +21,11 @@ how much of the suite relies on mocking versus exercising real code.
 
 ## Install
 
+Claude Code skills can be installed globally (available in every project) or per-project
+(bundled into one repo, e.g. so teammates get it just by cloning that repo).
+
+### All projects on this machine
+
 Clone this repo, then symlink it into your Claude Code skills directory:
 
 ```bash
@@ -30,6 +35,28 @@ ln -s ~/Documents/Projects/Code/crap-score ~/.claude/skills/crap-score
 
 Or just clone it directly into `~/.claude/skills/crap-score` if you don't need a separate
 copy on disk.
+
+### A single project only
+
+Skills also work project-scoped, at `<project>/.claude/skills/<name>/` — pick one:
+
+**Vendored (simplest, no submodule mechanics, but won't auto-update):**
+
+```bash
+git clone https://github.com/foomoon/crap-score.git .claude/skills/crap-score
+rm -rf .claude/skills/crap-score/.git
+git add .claude/skills/crap-score
+```
+
+**Git submodule (stays linked to this repo, teammates run `git submodule update --init`
+after cloning):**
+
+```bash
+git submodule add https://github.com/foomoon/crap-score.git .claude/skills/crap-score
+```
+
+Either way, `/crap-score` is then available in Claude Code sessions started in that project,
+without needing the global install above.
 
 ## Use
 
